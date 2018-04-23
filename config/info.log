@@ -1,0 +1,72 @@
+[common]
+Business=12582_  ;业务名称，当合并文件名中带_时需要配置_
+InputDir=F:/sort/sort_12582/input
+LogPath=F:/sort/sort_12582/log
+Rules=error_rule,arrivetime_rule,upprov_rule,dnprov_rule,default_rule
+input_rule_exp=^12582_[0-9]{11}[.][0-9]{3}
+RedoPath=F:/sort/sort_12582/redo
+BakPath=F:/sort/sort_12582/bak
+FieldLen=195
+BatchSize=5       ;合并单次取的文件数量
+MergeInterval=900 ;合并周期，单位 秒
+
+[zookeeper]
+ZkList=10.12.1.174:2181,10.12.1.171:2181,10.12.1.234:2181
+ProcessPath=/nonzc/12582
+FilenamePool=/nonzc/12582/filename_pool
+
+[error_rule]
+FieldName=GROUP_ERR_CODE
+FieldIndex=188
+FieldType=TEXT
+DestDir=F:/sort/sort_12582/output/error
+DestFilename=E
+FilenamePart=_HEAD,_SFN   ;输出文件名组成部分 _HEAD为文件头，对应DestFilename，_SFN为原文件名，_DATE为合并日期,_PROV为省代码,_SPLIT为分隔符".",_SEQ为合并序号
+NeedNullDestFile=1        ;是否生成空文件。0：不需要；1：有原文件时生成；2：都需要生成。
+ConditionMutex=true       ;与其他条件是否互斥
+ConditionExpr=GROUP_ERR_CODE!=""
+
+[arrivetime_rule]
+FieldName=ARRIVE_TIME
+FieldIndex=135
+FieldType=TEXT
+DestDir=F:/sort/sort_12582/output/arrivetime_null
+DestFilename=
+FilenamePart=_SFN
+NeedNullDestFile=0
+ConditionMutex=true
+ConditionExpr=ARRIVE_TIME==""
+
+[upprov_rule]
+FieldName=SP_BAL_PROV
+FieldIndex=167
+FieldType=INTEGER
+GroupField=HPLMN1
+DestDir=F:/sort/sort_12582/output/upprov
+DestFilename=B_
+FilenamePart=_HEAD,_DATE,_PROV,_SPLIT,_SEQ
+NeedNullDestFile=2
+ConditionMutex=false
+ConditionExpr=SP_BAL_PROV==(230)
+[dnprov_rule]
+FieldName=HPLMN1
+FieldIndex=20
+FieldType=INTEGER
+GroupField=HPLMN1
+DestDir=F:/sort/sort_12582/output/dnprov
+DestFilename=
+FilenamePart=_HEAD,_DATE,_PROV,_SPLIT,_SEQ
+NeedNullDestFile=2
+ConditionMutex=true
+ConditionExpr=HPLMN1==(100,200,210,220,230,240,250,270,280,290,311,351,371,431,451,471,531,551,571,591,731,771,791,851,871,891,898,931,951,991,971)
+
+[default_rule]
+FieldName=
+FieldIndex=
+FieldType=
+DestDir=F:/sort/sort_12582/output/default
+DestFilename=
+FilenamePart=_SFN
+NeedNullDestFile=0
+ConditionMutex=true
+ConditionExpr=

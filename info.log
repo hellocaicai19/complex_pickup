@@ -1,0 +1,2 @@
+18/4/23
+1.修改配置文件:将除error以外其他rule的NeedNullDestFile改为0
