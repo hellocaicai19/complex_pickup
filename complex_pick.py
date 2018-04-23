@@ -59,7 +59,7 @@ while 1:
     file_num = config.get_file()
     if file_num == 0:
         logging.info("no file in input dir..")
-        time.sleep(10)
+        time.sleep(5)
         continue
     flow.work()
     logging.info("batch work end")

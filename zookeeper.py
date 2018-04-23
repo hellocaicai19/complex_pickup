@@ -53,21 +53,32 @@ class Zookeeper:
         for c in childs:
             if re.findall(p1, c):
                 node_list.append(c)
-
-        # len += 1
         node_list = sorted(node_list)
+        if len(node_list) <= 0:
+            print("no process id in zookeeper process path")
+            sys.exit()
+        get_times = 0
         while 1:
             for node in node_list:
+                lock_flag = False
                 node_name = '%s/%s' % (node_path, node)
                 n_child = self.zk.get_children(node_name)
-                for nc in n_child:
-                    if nc == 'lock':
-                        continue
+                if len(n_child) > 0:
+                    for n in n_child:
+                        if n == 'lock':
+                            lock_flag = True
+                if lock_flag:
+                    continue
                 lock_node = "%s/%s" % (node_name, 'lock')
                 self.zk.create(lock_node, ephemeral=True)
                 process_id = ''.join(node.split('_')[1:])
                 logging.info('get process_id :%s from zookeeper ' % process_id)
                 return process_id
+            get_times += 1
+            print("no free process id in zookeeper")
+            if get_times >= 3:
+                print("get process id faild three times, please check zookeeper process id, exit")
+                sys.exit()
             time.sleep(5)
 
     def lock(self, lock):
