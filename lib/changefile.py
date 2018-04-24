@@ -20,15 +20,15 @@ import os
 import sys
 import time
 
-input_path = "f:/sort/sort_stream/bak"
-output_path = "f:/sort/sort_stream/upfile"
+input_path = "f:/sort/sort_m/bak"
+output_path = "f:/sort/sort_m/upfile"
 
 if not os.path.exists(input_path) or input_path == "":
     print("inputpath:%s not exists" % input_path)
     sys.exit()
 
 if not os.path.exists(output_path) or output_path == "":
-    print("outputpath:%s not exists" % input_path)
+    print("outputpath:%s not exists" % output_path)
     sys.exit()
 
 input_files = os.listdir(input_path)

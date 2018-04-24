@@ -126,7 +126,8 @@ class Flow:
             self.fileContents = []
             logging.info('read file :%s' % file)
             self.read_xdr_file(file_path)
-            self.contents = self.xdrFile.get_contents()
+            # self.contents = self.xdrFile.get_contents()
+            self.contents = self.xdrFile.contents
             if len(self.contents) != 0:
                 this_arrivetime = self.contents[0][134][0:8]
             else:
@@ -147,7 +148,7 @@ class Flow:
                 continue
             # 重置arrive_time
             arrive_time = this_arrivetime
-            self.xdrFile.set_contents(self.contents)
+            # self.xdrFile.set_contents(self.contents)
             self.file_to_db()
             for rule in self.rules:
                 rule.process_id = self.process_id

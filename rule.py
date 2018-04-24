@@ -70,9 +70,9 @@ class Rule:
         str_sql = "SELECT id FROM sorttable "
         if condition_expr != "":  # 判断该rule是否有查询条件
             # 按省查询
-            if "(" in condition_expr:  # 判断是否是按省查询
-                prov_list = re.findall('\((.*?)\\)', condition_expr)  # 截取出省代码列表
-                factor = condition_expr.split("(")[0]
+            if "{" in condition_expr:  # 判断是否是按省查询
+                prov_list = re.findall('\{(.*?)\\}', condition_expr)  # 截取出省代码列表
+                factor = condition_expr.split("{")[0]
                 # 被该分拣条件选中的话单不再被其他分拣条件分拣
                 if condition_mutex == "true":
                     for prov in prov_list[0].split(","):
@@ -117,12 +117,23 @@ class Rule:
                                 filename += part
                         out_filename = of_temp_dir + filename
                         self.do_to_onefile(out_filename, contents)
+                        # for content in contents:
+                        #     str_sql_update = "UPDATE sorttable set FLAG=1 where id = %s" % content[0]
+                        #     try:
+                        #         cur.execute(str_sql_update)
+                        #     except Exception as e:
+                        #         logging.error("update error:%s" % e)
+                        content_0_list = []
                         for content in contents:
-                            str_sql_update = "UPDATE sorttable set FLAG=1 where id = %s" % content[0]
+                            content_0_list.append(str(content[0]))
+                        if len(content_0_list) > 0:
+                            content_0_str = ",".join(content_0_list)
+                            str_sql_update = "UPDATE sorttable set FLAG=1 where id in (%s" % content_0_str + ")"
                             try:
                                 cur.execute(str_sql_update)
                             except Exception as e:
                                 logging.error("update error:%s" % e)
+                                sys.exit()
                         output_list.append(out_filename)
 
                 return output_list
@@ -222,13 +233,18 @@ class Rule:
             ori_file_content = self.xdrFile.get_contents()
         if contents:
             for content in contents:
+                # try:
+                #     ori_file_content[content[0]][130] = os.path.basename(ofn)
+                #     line = ";".join(ori_file_content[content[0]])  # + "\n"
+                # except IndexError as e:
+                #     logging.error("change xdr's filename err:%s" % e)
+                #     sys.exit()
                 try:
-                    ori_file_content[content[0]][130] = os.path.basename(ofn)
-                    line = ";".join(ori_file_content[content[0]])  # + "\n"
-                except IndexError as e:
+                    line = ";".join(ori_file_content[content[0]])
+                    file_content.append(line)
+                except Exception as e:
                     logging.error("change xdr's filename err:%s" % e)
                     sys.exit()
-                file_content.append(line)
         file_len = len(file_content)
         out_xdr_file = XdrFile()
         out_xdr_file.open_xdr_file(ofn, 'a')
