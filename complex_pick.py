@@ -36,12 +36,10 @@ log_path = cfg["common"]["logpath"]
 if not os.path.exists(log_path):
     logging.info("logpath:%s not exist" % log_path)
     sys.exit()
-merge_interval = int(cfg["common"]["mergeinterval"])
 process_path = cfg["zookeeper"]["processpath"]
-MAX_MERGE_FILE_SEQUENCE = 86400 / merge_interval - 1
 zk_host_list = cfg["zookeeper"]["zklist"]
 # 创建zookeeper实例
-zoo = Zookeeper(zk_host_list, MAX_MERGE_FILE_SEQUENCE)
+zoo = Zookeeper(zk_host_list, None)
 process_id = zoo.get_node(process_path)
 pl.set_log(log_path, process_id)
 flow = config.create_flow(process_id)

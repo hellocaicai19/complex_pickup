@@ -20,8 +20,8 @@ import os
 import sys
 import time
 
-input_path = "f:/sort/sort_m/bak"
-output_path = "f:/sort/sort_m/upfile"
+input_path = "f:/sort/sort_cm/bak"
+output_path = "f:/sort/sort_cm/upfile"
 
 if not os.path.exists(input_path) or input_path == "":
     print("inputpath:%s not exists" % input_path)
