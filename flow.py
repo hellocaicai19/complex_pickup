@@ -58,6 +58,10 @@ class Flow:
         """
         :return:
         """
+        check_exist_sql = "select * from sqlite_master where name=sorttable" % self.process_id
+        exist_flag = self.cur.execute(check_exist_sql)
+        if exist_flag != "":
+            self.cur.execute("DROP TABLE sorttable%s" % self.process_id)
         b_success = False
         for rule in self.rules:
             fields = rule.get_fields()
@@ -71,11 +75,10 @@ class Flow:
                 self.cols[key] = (value[0], value[1])
 
         if self.cols is not None and len(self.cols) > 0:
-            create_sql = "CREATE TABLE sorttable (ID   INTEGER"
+            create_sql = "CREATE TABLE sorttable%s (ID   INTEGER" % self.process_id
             for key, value in self.cols.items():
                 create_sql = create_sql + "," + key + "    " + value[0]
             create_sql += ", FLAG TEXT)"
-            # logging.info("create sql:%s" % create_sql)
             self.cur.execute(create_sql)
             b_success = True
         return b_success
@@ -89,25 +92,29 @@ class Flow:
         self.xdrFile.open_xdr_file(filename, 'r')
         self.xdrFile.read_xdr_file(self.fieldlen)
 
-    def work(self):
+    def work(self, zoo, redo_node):
         """
+
+        :param zoo:
+        :param redo_node:
         :return:
         """
+        redo_info = []
         self.output_list = []
         business = self.config["common"]["business"]
         files_list = os.listdir(self.input_path)
         logging.info('files in input temp:%s' % files_list)
         self.create_table()
-        # 写redo
-        rf = ("%s/%spm.%s.redo" % (self.redo_path, business, str(self.process_id)))
-        redo_file = open(rf, 'a')
-        redo_file.writelines(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
-        redo_file.close()
-        # 实例化类
-        redo = Redo()
-        redo_content_dic = {"todo_list": files_list, "action_step": "PICKUP"}
-        redo.write_redo(rf, redo_content_dic)
-        redo.write_redo(rf, {'file_list': self.output_list})
+        # # 写redo
+        # rf = ("%s/%spm.%s.redo" % (self.redo_path, business, str(self.process_id)))
+        # redo_file = open(rf, 'a')
+        # redo_file.writelines(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
+        # redo_file.close()
+        # # 实例化类
+        # redo = Redo()
+        # redo_content_dic = {"todo_list": files_list, "action_step": "PICKUP"}
+        # redo.write_redo(rf, redo_content_dic)
+        # redo.write_redo(rf, {'file_list': self.output_list})
         arrive_time = ""
         file_num = 0
         output_filename = ""
@@ -118,13 +125,24 @@ class Flow:
                 output_filename = file
                 break
         source_file_list = []  # 用来存放有效的入口文件名
+        redo_info.append("begin")
+        try:
+            zoo.create_node(redo_node)
+        except Exception as e:
+            logging.error("create redo node at zk failed, err:%s" % e)
+            sys.exit()
+        try:
+            zoo.set_node_value(redo_node, ";".join(redo_info).encode('utf-8'))
+        except Exception as e:
+            logging.error("write redo failed , err:%s" % e)
+            sys.exit()
         for file in files_list:
             file_path = self.input_path + "/" + file
             if not os.path.isfile(file_path):
                 continue
             file_num += 1
             self.fileContents = []
-            logging.info('read file :%s' % file)
+            logging.info('begin pick file :%s' % file)
             self.read_xdr_file(file_path)
             # self.contents = self.xdrFile.get_contents()
             self.contents = self.xdrFile.contents
@@ -141,7 +159,7 @@ class Flow:
                 target_file = file_path.replace('/' + self.temp_dn, '')
                 try:
                     os.rename(file_path, target_file)
-                    logging.info('MOVE FILE:%s-->%s' % (file_path, target_file))
+                    logging.info('MOVE FILE:%s to %s' % (file_path, target_file))
                 except Exception as e:
                     logging.error("MOVE FILE ERR %s" % e)
                     sys.exit()
@@ -158,12 +176,15 @@ class Flow:
             source_file_list.append(file)
         self.output_list = list(set(self.output_list))
         # self.output_list = new_output_list
-        self.cur.execute("DROP TABLE sorttable")
-        redo_content_done = {"action_step": "END"}
-        redo.write_redo(rf, redo_content_done)
+        self.cur.execute("DROP TABLE sorttable%s" % self.process_id)
+        # redo_content_done = {"action_step": "END"}
+        # redo.write_redo(rf, redo_content_done)
+        redo_info.append("end")
+        zoo.set_node_value(redo_node, ";".join(redo_info).encode('utf-8'))
         self.move_file(source_file_list)
-        redo.delete_redo(rf)
-        logging.info("end")
+        zoo.delete(redo_node)
+        # redo.delete_redo(rf)
+        logging.info("end the work of this batch")
 
     def move_file(self,  source_files):
         """

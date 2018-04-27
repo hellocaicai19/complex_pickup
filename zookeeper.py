@@ -71,9 +71,9 @@ class Zookeeper:
                     continue
                 lock_node = "%s/%s" % (node_name, 'lock')
                 self.zk.create(lock_node, ephemeral=True)
-                process_id = ''.join(node.split('_')[1:])
-                logging.info('get process_id :%s from zookeeper ' % process_id)
-                return process_id
+                # process_id = ''.join(node.split('_')[1:])
+                logging.info('get process_id :%s from zookeeper ' % node)
+                return node
             get_times += 1
             print("no free process id in zookeeper")
             if get_times >= 3:
@@ -89,6 +89,9 @@ class Zookeeper:
         """
         self.zk.create(lock, ephemeral=True)
 
+    def check_exists(self, node_path):
+        return self.zk.exists(node_path)
+
     def get_config(self, config_path, config_node):
         """
         generate config files based on node's information
@@ -99,6 +102,31 @@ class Zookeeper:
         data, stat = self.zk.get(config_node)
         with open(config_path + "config.ini", 'w') as f:
             f.writelines(data.decode())
+
+    def get_node_value(self, zk_node):
+        data, stat = self.zk.get(zk_node)
+        return data, stat
+
+    def set_node_value(self, zk_node, data):
+        return self.zk.set(zk_node, value=data)
+
+    def delete_node(self, zk_node):
+        self.zk.delete(zk_node)
+
+    def create_node(self, node, flag=False):
+        """
+        lock the free node
+        :param node:
+        :param flag:
+        :return:
+        """
+        try:
+            self.zk.create(node, ephemeral=flag)
+        except Exception as e:
+            logging.info("create zookeeper node:%s failed, err:%s" % (node, e))
+            print(node, e)
+            return False
+        return True
 
     def cp(self, src, dest):
         """
@@ -126,9 +154,6 @@ class Zookeeper:
 
         self.zk.create(dest)
         self.zk.set(dest, value=data)
-
-    def zk_rename(self):
-        pass
 
     def zk_get_merge_fn(self, cur_seq, filename_pool, business):
         """

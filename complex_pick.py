@@ -1,15 +1,14 @@
 # coding: utf-8
 import time
 import logging
-import datetime
 import sys
 import os
 import getopt
 from config import Config
 from lib.nframe import PublicLib
 from zookeeper import Zookeeper
-from check_redo import CheckRedo
-from pick_file import PickFile
+
+from zk_redo import ZkRedo
 
 pl = PublicLib()
 config_file = ''
@@ -36,28 +35,39 @@ log_path = cfg["common"]["logpath"]
 if not os.path.exists(log_path):
     logging.info("logpath:%s not exist" % log_path)
     sys.exit()
-process_path = cfg["zookeeper"]["processpath"]
+zk_process_path = cfg["zookeeper"]["processpath"]
 zk_host_list = cfg["zookeeper"]["zklist"]
 # 创建zookeeper实例
 zoo = Zookeeper(zk_host_list, None)
-process_id = zoo.get_node(process_path)
+work_node = zoo.get_node(zk_process_path)
+process_id = ''.join(work_node.split('_')[1:])
 pl.set_log(log_path, process_id)
 flow = config.create_flow(process_id)
-business_name = cfg["common"]["business"]
+# business_name = cfg["common"]["business"]
+redo_node = zk_process_path + "/" + work_node + "/" + "redo"
+redo_node_flag = zoo.check_exists(redo_node)
+if redo_node_flag is not None:
+    redo_info, stat = zoo.get_node_value(redo_node)
+    if redo_info is not None:
+        bak_path = cfg["common"]["bakpath"]
+        input_dir = cfg["common"]["inputdir"]
+        output_dirs = config.output_dirs
+        zk_redo = ZkRedo(redo_info, process_id, input_dir, output_dirs, bak_path)
+        zk_redo.do_task()
+        zoo.delete_node(redo_node)
 
-redo_file = cfg["common"]["redopath"] + "/" + business_name + "_pick." + process_id + ".redo"
-check_redo = CheckRedo(redo_file, process_id, config.output_dirs)
-recover = check_redo.do_task()
-if recover == 1:
-    logging.info('redo:recover=1,Revert...')
-    flow.work()
+# redo_file = cfg["common"]["redopath"] + "/" + business_name + "_pick." + process_id + ".redo"
+# check_redo = CheckRedo(redo_file, process_id, config.output_dirs)
+# recover = check_redo.do_task()
+# if recover == 1:
+#     logging.info('redo:recover=1,Revert...')
+#     flow.work(zoo, redo_node)
 while 1:
-    # 获取当前系统序号
     flow = config.create_flow(process_id)
     file_num = config.get_file()
     if file_num == 0:
-        logging.info("no file in input dir..")
+        logging.info("no file in input dir,wait")
         time.sleep(5)
         continue
-    flow.work()
+    flow.work(zoo, redo_node)
     logging.info("batch work end")

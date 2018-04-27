@@ -67,7 +67,7 @@ class Rule:
             logging.info("%s not exist, make it" % of_temp_dir)
         out_filename = ""
         self.xdrFile = xdr_file
-        str_sql = "SELECT id FROM sorttable "
+        str_sql = "SELECT id FROM sorttable%s " % self.process_id
         if condition_expr != "":  # 判断该rule是否有查询条件
             # 按省查询
             if "{" in condition_expr:  # 判断是否是按省查询
@@ -76,7 +76,7 @@ class Rule:
                 # 被该分拣条件选中的话单不再被其他分拣条件分拣
                 if condition_mutex == "true":
                     for prov in prov_list[0].split(","):
-                        str_sql = "SELECT id FROM sorttable "
+                        str_sql = "SELECT id FROM sorttable%s " % self.process_id
                         str_sql = str_sql + " WHERE " + factor + prov
                         cur.execute(str_sql)
                         contents = cur.fetchall()
@@ -95,12 +95,12 @@ class Rule:
                         self.do_to_onefile(out_filename, contents)
                         output_list.append(out_filename)
                         # 从表中删除符合该分拣条件的数据
-                        delete_sql = "DELETE FROM sorttable WHERE " + factor + prov
+                        delete_sql = "DELETE FROM sorttable" + self.process_id + " WHERE + factor + prov"
                         cur.execute(delete_sql)
                 # 被该分拣条件选中的话单可以被其他分拣条件分拣
                 else:
                     for prov in prov_list[0].split(","):
-                        str_sql = "SELECT id FROM sorttable "
+                        str_sql = "SELECT id FROM sorttable%s " % self.process_id
                         str_sql = str_sql + " WHERE " + factor + prov
                         cur.execute(str_sql)
                         contents = cur.fetchall()
@@ -128,7 +128,8 @@ class Rule:
                             content_0_list.append(str(content[0]))
                         if len(content_0_list) > 0:
                             content_0_str = ",".join(content_0_list)
-                            str_sql_update = "UPDATE sorttable set FLAG=1 where id in (%s" % content_0_str + ")"
+                            str_sql_update = "UPDATE sorttable" + self.process_id + \
+                                             " set FLAG=1 where id in (" + content_0_str + ")"
                             try:
                                 cur.execute(str_sql_update)
                             except Exception as e:
@@ -167,14 +168,14 @@ class Rule:
                     output_list.append(out_filename)
                 if condition_mutex == "true":
                     try:
-                        cur.execute("DELETE FROM sorttable WHERE " + condition_expr)
+                        cur.execute("DELETE FROM sorttable%s WHERE %s" % (self.process_id, condition_expr))
                     except Exception as e:
                         logging.error("execute sql err: %s" % e)
                         sys.exit()
                 return output_list
         # 该rule无查询条件
         else:
-            str_sql = " SELECT id FROM sorttable where FLAG == '' "
+            str_sql = " SELECT id FROM sorttable%s where FLAG == '' " % self.process_id
             try:
                 cur.execute(str_sql)
             except Exception as e:
@@ -184,8 +185,8 @@ class Rule:
             if not contents:
                 if condition_mutex == "true":
                     try:
-                        cur.execute("DELETE FROM sorttable")
-                        logging.info("DELETE FROM sorttable")
+                        cur.execute("DELETE FROM sorttable%s" % self.process_id)
+                        logging.info("DELETE FROM sorttable%s" % self.process_id)
                     except Exception as e:
                         logging.error("execute sql err: %s" % e)
                         sys.exit()
@@ -207,8 +208,8 @@ class Rule:
                 output_list.append(out_filename)
             if condition_mutex == "true":
                     try:
-                        cur.execute("DELETE FROM sorttable")
-                        logging.info("DELETE FROM sorttable")
+                        cur.execute("DELETE FROM sorttable%s" % self.process_id)
+                        logging.info("DELETE FROM sorttable%s" % self.process_id)
                     except Exception as e:
                         logging.error("execute sql err: %s" % e)
                         sys.exit()
