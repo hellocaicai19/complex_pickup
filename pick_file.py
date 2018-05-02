@@ -29,8 +29,13 @@ class PickFile:
 
             p1 = re.compile(self.match_expr)
             if re.findall(p1, file):
-                os.rename(source_file, os.path.join(self.process_input_dir, file))
-                logging.info('BEGIN:MOVE %s TO %s/%s' % (file, self.process_input_dir, file))
+                try:
+                    os.rename(source_file, os.path.join(self.process_input_dir, file))
+                    logging.info('BEGIN:MOVE %s TO %s/%s' % (file, self.process_input_dir, file))
+                except FileNotFoundError:
+                    logging.info("file %s not found, continue" % source_file)
+                    continue
+
             file_num += 1
             if file_num >= int(self.batch_size):  # need to configure the file_batch_size in config file
                 break

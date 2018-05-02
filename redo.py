@@ -11,7 +11,6 @@ import logging
 '''
 import BaseInterfaces
 import os
-#from zkclient import zkClient
 
 
 class Redo(BaseInterfaces.BaseInterfaces):
@@ -37,7 +36,7 @@ class Redo(BaseInterfaces.BaseInterfaces):
             os.remove(redo_file)
 
         else:
-        #    raise IOError("[WARN] >>>redo file is not exist or redo_file size is 0!!!<<<")
+            # raise IOError("[WARN] >>>redo file is not exist or redo_file size is 0!!!<<<")
             logging.info("[WARN] >>>redo file is not exist or redo_file size is 0!!!<<<")
         '''
         if on_zk is True:
@@ -51,9 +50,6 @@ class Redo(BaseInterfaces.BaseInterfaces):
             finally:
                 zk.close()
         '''
-
-
-
         return 0
 
     '''

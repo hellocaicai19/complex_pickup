@@ -58,9 +58,10 @@ class Flow:
         """
         :return:
         """
-        check_exist_sql = "select * from sqlite_master where name=sorttable" % self.process_id
-        exist_flag = self.cur.execute(check_exist_sql)
-        if exist_flag != "":
+        check_exist_sql = "select * from sqlite_master where name='sorttable%s'" % self.process_id
+        self.cur.execute(check_exist_sql)
+        exist_flag = self.cur.fetchall()
+        if exist_flag is None:
             self.cur.execute("DROP TABLE sorttable%s" % self.process_id)
         b_success = False
         for rule in self.rules:
@@ -223,7 +224,7 @@ class Flow:
         :return:
         """
         sql_params = []
-        sql_insert = "INSERT INTO sorttable VALUES(?" + ",?" * (len(self.cols) + 1) + ")"
+        sql_insert = "INSERT INTO sorttable" + str(self.process_id) + " VALUES(?" + ",?" * (len(self.cols) + 1) + ")"
         _id = 0
         for line in self.contents:
             sql_param = [_id]

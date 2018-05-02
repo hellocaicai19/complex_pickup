@@ -244,7 +244,7 @@ class Rule:
                     line = ";".join(ori_file_content[content[0]])
                     file_content.append(line)
                 except Exception as e:
-                    logging.error("change xdr's filename err:%s" % e)
+                    logging.error("build  xdr err:%s" % e)
                     sys.exit()
         file_len = len(file_content)
         out_xdr_file = XdrFile()

@@ -7,10 +7,10 @@ import datetime
 from kazoo.client import KazooClient
 
 
+
 class Zookeeper:
 
     def __init__(self, hosts, max_merge_seq):
-        logging.info('create a zookeeper object')
         self.zk = ""
         self.IsConn = False
         self.Hosts = hosts
@@ -186,8 +186,25 @@ class Zookeeper:
 
         zk_seq = "%03d" % zk_seq
         next_child = '%s.%s' % (file_date, zk_seq)
-        self.zk.delete("%s/%s" % (filename_pool, zk_fn_seq))
-        self.zk.create("%s/%s" % (filename_pool, next_child))
+        transaction_request = self.zk.transaction()
 
+        transaction_request.delete("%s/%s" % (filename_pool, zk_fn_seq))
+        transaction_request.create("%s/%s" % (filename_pool, next_child))
+        results = transaction_request.commit()
+        if results[0] is True and results[1] == ("%s/%s" % (filename_pool, next_child)):
+            return ""
         return next_child
 
+    def test_transaction(self):
+        self.connect()
+        transaction_request = self.zk.transaction()
+
+        transaction_request.delete("/nonzc/test/process_9001001")
+        transaction_request.create("/nonzc/test/process_9001003")
+        print("sleep...")
+        # time.sleep(10)
+        results = transaction_request.commit()
+        print("type:%s" % type(results))
+        for result in results:
+            print("type:%s" % type(result))
+            print("info:%s" % result)
