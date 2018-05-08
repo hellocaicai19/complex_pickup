@@ -106,16 +106,6 @@ class Flow:
         files_list = os.listdir(self.input_path)
         logging.info('files in input temp:%s' % files_list)
         self.create_table()
-        # # 写redo
-        # rf = ("%s/%spm.%s.redo" % (self.redo_path, business, str(self.process_id)))
-        # redo_file = open(rf, 'a')
-        # redo_file.writelines(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
-        # redo_file.close()
-        # # 实例化类
-        # redo = Redo()
-        # redo_content_dic = {"todo_list": files_list, "action_step": "PICKUP"}
-        # redo.write_redo(rf, redo_content_dic)
-        # redo.write_redo(rf, {'file_list': self.output_list})
         arrive_time = ""
         file_num = 0
         output_filename = ""
@@ -145,7 +135,6 @@ class Flow:
             self.fileContents = []
             logging.info('begin pick file :%s' % file)
             self.read_xdr_file(file_path)
-            # self.contents = self.xdrFile.get_contents()
             self.contents = self.xdrFile.contents
             if len(self.contents) != 0:
                 this_arrivetime = self.contents[0][134][0:8]
@@ -176,15 +165,11 @@ class Flow:
                     self.output_list.extend(flag)
             source_file_list.append(file)
         self.output_list = list(set(self.output_list))
-        # self.output_list = new_output_list
         self.cur.execute("DROP TABLE sorttable%s" % self.process_id)
-        # redo_content_done = {"action_step": "END"}
-        # redo.write_redo(rf, redo_content_done)
         redo_info.append("end")
         zoo.set_node_value(redo_node, ";".join(redo_info).encode('utf-8'))
         self.move_file(source_file_list)
         zoo.delete(redo_node)
-        # redo.delete_redo(rf)
         logging.info("end the work of this batch")
 
     def move_file(self,  source_files):

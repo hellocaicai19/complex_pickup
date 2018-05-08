@@ -29,7 +29,7 @@ class Zookeeper:
         try:
             self.zk.start()
         except Exception as e:
-            print("connect time out")
+            print("connect zookeeper failed, err:", e)
             sys.exit()
         self.IsConn = True
         return self.zk
@@ -92,16 +92,21 @@ class Zookeeper:
     def check_exists(self, node_path):
         return self.zk.exists(node_path)
 
-    def get_config(self, config_path, config_node):
+    def get_config(self, config_node, local_config_path):
         """
         generate config files based on node's information
-        :param config_path:
+        :param local_config_path:
         :param config_node:
         :return:
         """
         data, stat = self.zk.get(config_node)
-        with open(config_path + "config.ini", 'w') as f:
-            f.writelines(data.decode())
+        try:
+            with open(local_config_path, 'w') as f:
+                f.writelines(data.decode())
+        except Exception as e:
+            print("get config from zk failed, err:", e)
+            return False
+        return True
 
     def get_node_value(self, zk_node):
         data, stat = self.zk.get(zk_node)
@@ -155,7 +160,7 @@ class Zookeeper:
         self.zk.create(dest)
         self.zk.set(dest, value=data)
 
-    def zk_get_merge_fn(self, cur_seq, filename_pool, business):
+    def zk_get_merge_fn(self, cur_seq, filename_pool):
         """
         get zookeeper seq
         :param cur_seq:
@@ -171,7 +176,6 @@ class Zookeeper:
             sys.exit()
         zk_fn_seq = child[0]
         file_date, zk_seq = zk_fn_seq.split('.')
-        file_date = re.sub(business, "", file_date)
         zk_fs = ("%s%s" % (file_date, zk_seq))
         zk_fs = re.sub("[A-Za-z.]", "", zk_fs)
         if int(zk_fs) > int(cur_seq):
@@ -199,7 +203,7 @@ class Zookeeper:
         self.connect()
         transaction_request = self.zk.transaction()
 
-        transaction_request.delete("/nonzc/test/process_9001001")
+        transaction_request.delete("/nonzc/test/process_9001006")
         transaction_request.create("/nonzc/test/process_9001003")
         print("sleep...")
         # time.sleep(10)
