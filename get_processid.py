@@ -3,7 +3,6 @@
 # encoding: utf-8
 
 """
-
 @author: lipd
 
 @file: get_config
@@ -12,13 +11,14 @@
 
 @desc:
 """
+
 import os
 import sys
 import subprocess
 from zookeeper import Zookeeper
 zk_nodelist = "10.12.1.174:2181,10.12.1.171:2181,10.12.1.234:2181"
 zk_process_id_path = "/nonzc/mms/pick"
-zk_config_node = "/home/nrjfpaas/asiainfo/lipd/non_zc/app/complex_pick/config/mms/mms_pick.ini"
+zk_config_node = "/nonzc/mms/pick/mms_pick.ini"
 local_config_path = "f:/test_config"
 
 # zk_nodelist = os.environ("zk_node_list")

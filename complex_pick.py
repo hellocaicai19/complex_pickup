@@ -8,6 +8,9 @@ from config import Config
 from lib.nframe import PublicLib
 from zookeeper import Zookeeper
 from zk_redo import ZkRedo
+from lib.receive_signal import ReceiveSignal
+
+ReceiveSignal.receive_signal()
 
 pl = PublicLib()
 config_file = ''
@@ -72,7 +75,6 @@ pl.set_log(log_path, process_id)
 flow = config.create_flow(process_id)
 redo_node = zk_process_path + "/" + work_node + "/" + "redo"
 redo_node_flag = zoo.check_exists(redo_node)
-
 if redo_node_flag is not None:
     redo_info, stat = zoo.get_node_value(redo_node)
     redo_info = bytes.decode(redo_info)
@@ -91,3 +93,5 @@ while 1:
         time.sleep(5)
         continue
     flow.work(zoo, redo_node)
+    if ReceiveSignal.EXIT_FLAG:
+        sys.exit()
