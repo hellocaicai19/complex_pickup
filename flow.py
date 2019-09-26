@@ -17,7 +17,7 @@ class Flow:
         self.conn = sqlite3.connect(':memory:')
         self.cur = self.conn.cursor()
         self.input_path = ""
-        self.redo_path = ""
+        self.up_path = ""
         self.bak_path = ""
         self.fileContents = []
         self.rules = []
@@ -30,9 +30,6 @@ class Flow:
         self.line_limit = 0
         self.temp_dn = ""
         self.config = {}
-
-    def set_redo_path(self, redo_path):
-        self.redo_path = redo_path
 
     def set_dir(self, input_path):
         self.input_path = input_path
@@ -52,6 +49,9 @@ class Flow:
 
     def set_line_limit(self, line_limit):
         self.line_limit = line_limit
+ 
+    def set_up_path(self, up_path):
+        self.up_path = up_path
 
     def create_table(self):
         # 在sqlite中创建表，字段、属性来自配置文件中的FieldName及FieldType
@@ -89,7 +89,7 @@ class Flow:
         :param filename:
         :return:
         """
-        self.xdrFile = XdrFile()
+        self.xdrFile = XdrFile() #初始化Xderfile类 from xder_file.py
         self.xdrFile.open_xdr_file(filename, 'r')
         self.xdrFile.read_xdr_file(self.fieldlen)
 
@@ -111,7 +111,7 @@ class Flow:
         output_filename = ""
         # 取本批次首个文件的文件名作为输出文件名
         for file in files_list:
-            file_path = self.input_path + "/" + file
+            file_path = os.path.join(self.input_path, file)
             if os.path.isfile(file_path):
                 output_filename = file
                 break
@@ -128,7 +128,7 @@ class Flow:
             logging.error("write redo failed , err:%s" % e)
             sys.exit()
         for file in files_list:
-            file_path = self.input_path + "/" + file
+            file_path = os.path.join(self.input_path, file)
             if not os.path.isfile(file_path):
                 continue
             file_num += 1
@@ -141,7 +141,6 @@ class Flow:
             else:
                 this_arrivetime = arrive_time
             # 获取此文件的arrive_time,判断此文件arrive_time与上一个文件的arrive_time是否一致，若不一致，将此文件挪回入口目录
-            # this_arrivetime = self.contents[0][134][0:8]
             if file_num != 1 and this_arrivetime != arrive_time:
                 logging.info("there is diff arrivetime in a batch file,before arr time:%s,this arr time:%s. "
                              "move %s out" %
@@ -149,14 +148,35 @@ class Flow:
                 target_file = file_path.replace('/' + self.temp_dn, '')
                 try:
                     os.rename(file_path, target_file)
-                    logging.info('MOVE FILE:%s to %s' % (file_path, target_file))
+                    logging.info('move file:%s to %s' % (file_path, target_file))
                 except Exception as e:
                     logging.error("MOVE FILE ERR %s" % e)
                     sys.exit()
                 continue
             # 重置arrive_time
             arrive_time = this_arrivetime
-            # self.xdrFile.set_contents(self.contents)
+          
+            if self.up_path != "":
+                up_file_contents = []
+                for contents in self.contents:
+                    try:
+                        line = ";".join(contents)
+                        up_file_contents.append(line)
+                    except Exception as e:
+                        logging.error("build upfile contents failed, err:%s" % e)
+                        sys.exit()
+                up_temp_path = os.path.join(self.up_path, str(self.process_id))
+                if not os.path.exists(up_temp_path):
+                    os.mkdir(up_temp_path)
+                up_file_name = os.path.join(up_temp_path, file)
+                up_file = open(up_file_name, "w")
+                try:
+                    up_file.writelines(up_file_contents)
+                    up_file.close()
+                    logging.info("write upfile %s success" % up_file_name)
+                except Exception as e:
+                    logging.error("write upfile failed, err:%s" % e)
+                    sys.exit()
             self.file_to_db()
             for rule in self.rules:
                 rule.process_id = self.process_id
@@ -168,8 +188,9 @@ class Flow:
         self.cur.execute("DROP TABLE sorttable%s" % self.process_id)
         redo_info.append("end")
         zoo.set_node_value(redo_node, ";".join(redo_info).encode('utf-8'))
+        #self.change_up_file(source_file_list)
         self.move_file(source_file_list)
-        zoo.delete(redo_node)
+        zoo.delete_node(redo_node)
         logging.info("end the work of this batch")
 
     def move_file(self,  source_files):
@@ -194,15 +215,50 @@ class Flow:
             logging.info("move end")
             return
         for source_file in source_files:
-            sf = self.input_path + '/' + source_file
-            tf = self.bak_path + '/' + source_file
+            sf = os.path.join(self.input_path, source_file)
+            if self.bak_path == "":
+                os.remove(sf)
+                logging.info('delete source file %s succes' % sf)
+                continue
+            tf = os.path.join(self.bak_path, source_file)
             try:
                 os.rename(sf, tf)
-                logging.info('MOVE FILE:%s-->%s' % (sf, tf))
+                logging.info('move source file success,%s-->%s' % (sf, tf))
             except Exception as e:
-                logging.error("MOVE FILE ERR %s" % e)
+                logging.error("move source file failed, err:%s" % e)
                 sys.exit()
+        if self.up_path != "":
+            up_temp_path = os.path.join(self.up_path, str(self.process_id))
+            up_file_list = os.listdir(up_temp_path)
+            for up_file in up_file_list:
+                sf = os.path.join(up_temp_path, up_file)
+                tf = os.path.join(self.up_path, up_file)
+                try:
+                    os.rename(sf, tf)
+                    logging.info("move up file success,%s-->%s" % (sf, tf))
+                except Exception as e:
+                    logging.error("move up file failed, err:%s" % e) 
         logging.info("move end")
+
+    def change_up_file(self, file_list):
+        for file in file_list:
+            file_content = []
+            up_temp_path = os.path.join(self.up_path, str(self.process_id))
+            if not os.path.exists(up_temp_path):
+                os.mkdir(up_temp_path)
+                logging.info("up temp path not exist, make it:%s" % up_temp_path)
+            sf = os.path.join(self.input_path, file)
+            tf = os.path.join(up_temp_path, file)
+            source_file = open(sf)
+            for line in source_file:
+                line_list = line.split(";")
+                if len(line_list) <= 1:
+                    continue
+                new_line = ";".join(line_list[2:])
+                file_content.append(new_line)
+            file = open(tf, "a")
+            file.writelines(file_content)
+            file.close()
 
     def file_to_db(self):
         """

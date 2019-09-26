@@ -31,12 +31,12 @@ class Config:
         parser.read(self.config_file)
         sections = []
         config = {}
-        for section in parser.sections():
+        for section in parser.sections(): #获取ini配置文件节
             sections.append(section)
             items = {}
-            for key, value in parser.items(section):
-                items[key] = value
-                config[section] = items
+            for key, value in parser.items(section): #获取该节下配置
+                items[key.lower()] = value       #将大写转为小写
+                config[section] = items          #二维列表
         return config
 
     def get_file(self):
@@ -49,33 +49,25 @@ class Config:
         config = self.get_config()
 
         # 检查配置项是否存在
-        if not config.get("common")["inputdir"]:
-            logging.error("ERROR>>no inputdir in %s<< " % self.config_file)
-            sys.exit()
         self.input_dir = config.get("common")["inputdir"]
 
         if not config.get("common")["input_rule_exp"]:
             logging.error("ERROR>>no input_rule_exp in %s<< " % self.config_file)
             sys.exit()
-
         self.match_expr = config.get("common")["input_rule_exp"]
-
-        if not config.get("common")["redopath"]:
-            logging.error("ERROR>>no redopath in %s<< " % self.config_file)
-            sys.exit()
-        redo_path = config.get("common")["redopath"]
-
         if not config.get("common")["fieldlen"]:
             logging.error("ERROR>>no fieldlen in %s<< " % self.config_file)
             sys.exit()
         fieldlen = config.get("common")["fieldlen"]
-
         if not config.get("common")["line_limit"]:
             logging.error("ERROR>>no line_limit in %s<< " % self.config_file)
             sys.exit()
         line_limit = config.get("common")["line_limit"]
         if line_limit == "":
             line_limit = 20000
+
+
+
         if not config.get("common")["rules"]:
             logging.error('ERROR>>no rules in config<<')
             sys.exit()
@@ -87,12 +79,12 @@ class Config:
             logging.error('ERROR>>no bakpath in config<<')
             sys.exit()
         bak_path = config.get("common")["bakpath"]
-
+        up_path = config.get("common")["uppath"]
         flow.set_fieldlen(fieldlen)
         flow.set_line_limit(int(line_limit))
         flow.set_process_id(process_id)
-        flow.set_redo_path(redo_path)
         flow.set_bak(bak_path)
+        flow.set_up_path(up_path)
 
         output_dirs = {}
         # 检查各rule是否配置了输出目录
@@ -104,14 +96,13 @@ class Config:
             output_dirs = {rule: output_dir}
 
         # 检查配置文件中的路径信息是否存在
-        all_path = {'inputdir': self.input_dir, 'redopath': redo_path, 'bakpath': bak_path}
-        all_path.update(output_dirs)
-        self.output_dirs = all_path
-        verify = Verify(all_path)
+        self.output_dirs = output_dirs 
+        verify = Verify(self.output_dirs)
         if not verify.check_path():
             sys.exit()
 
-        self.process_input_dir = self.input_dir + "/" + process_id
+        #self.process_input_dir = self.input_dir + "/" + process_id
+        self.process_input_dir = os.path.join(self.input_dir, process_id)
         flow.set_dir(self.process_input_dir)
 
         for rule_name in rule_list:

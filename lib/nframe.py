@@ -69,7 +69,7 @@ class PublicLib(object):
         self.logger.setLevel(logging.INFO)
         filename = logpath + '/' + logname + "_" + time.strftime('%Y%m%d', time.localtime(time.time())) + '.log'
         fh = logging.handlers.TimedRotatingFileHandler(filename, 'D', 1, 0)
-        fh.suffix = "%Y%m%d-%H%M%S.log"
+        fh.suffix = "%Y%m%d.log"
         fh.setLevel(logging.INFO)
         formatter = logging.Formatter(
             "%(asctime)s %(levelname)s "

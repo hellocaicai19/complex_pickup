@@ -17,23 +17,23 @@ class PickFile:
         将此业务的文件挪入相应的入口临时目录
 
         """
-        if not(os.path.exists(self.process_input_dir)):
+        if not(os.path.exists(self.process_input_dir)):#创建临时目录
             os.mkdir(self.process_input_dir)
 
-        files = os.listdir(self.input_dir)
+        files = os.listdir(self.input_dir)#获取目录下文件
         file_num = 0
         for file in files:
-            source_file = os.path.join(self.input_dir, file)
-            if (not (os.path.exists(source_file))) or (not (os.path.isfile(source_file))):
+            source_file = os.path.join(self.input_dir, file) #目录名+文件名
+            if (not (os.path.exists(source_file))) or (not (os.path.isfile(source_file))):#文件不存在或不是文件，跳出当前循环
                 continue
 
-            p1 = re.compile(self.match_expr)
+            p1 = re.compile(self.match_expr)#匹配文件
             if re.findall(p1, file):
                 try:
-                    os.rename(source_file, os.path.join(self.process_input_dir, file))
+                    os.rename(source_file, os.path.join(self.process_input_dir, file))#文件移到临时目录
                     logging.info('BEGIN:MOVE %s TO %s/%s' % (file, self.process_input_dir, file))
                 except FileNotFoundError:
-                    logging.info("file %s not found, continue" % source_file)
+                    logging.info("file %s not found, continue" % source_file) #找不到文件，跳出循环，继续
                     continue
 
             file_num += 1

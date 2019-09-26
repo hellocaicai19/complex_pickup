@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+# coding:utf-8
+import time, os
+import shutil
+import os
+import pymysql
+import glob
+from multiprocessing import Process
+
+def read_data(filename):
+    with open(file=filename, encoding='utf-8', mode='r') as f:
+        result_list=[]
+        for line in f.readlines():
+            row=line.strip().split(',')
+            process_time=row[0]
+            prov_code=row[1]
+            cg_code=row[2]
+            dnfile_name=row[3]
+            avg_dnload_delay=row[4]
+            avg_total_delay=row[5]
+            total_cnt=row[6]
+            avg_upload_delay=row[7]
+            tup=(process_time,prov_code,cg_code,dnfile_name,avg_dnload_delay,avg_total_delay,total_cnt,avg_upload_delay)
+            #print(tup)
+            result_list.append(tup)
+            if len(result_list) > 5000:
+                load_insert(result_list)
+                result_list=[]
+        if len(result_list) != 0:
+            load_insert(result_list)
+            result_list=[]
+def load_insert(result_list):
+    conn_mysql = pymysql.connect(user='cbbs_oper', passwd='cbbs_oper%20190908Z', port=3306, db='cbbs_gprs', host='10.252.193.161')
+    cursor = conn_mysql.cursor()
+    insert_sql="insert into cbbs_time_gprs_sma_bigdata(process_time,prov_code,cg_code,dnfile_name,avg_dnload_delay,avg_total_delay,total_cnt,avg_upload_delay)values(%s,%s,%s,%s,%s,%s,%s,%s)"
+    try:
+        n = cursor.executemany(insert_sql, result_list)
+        conn_mysql.commit()
+        result_list = []
+    except pymysql.err.IntegrityError  as e:
+        print(e)
+        conn_mysql.rollback()
+    conn_mysql.close()
+    return n
+    
+if __name__=='__main__':
+    ofile=glob.glob('/home/elk/GPRS_download_delay.Gprs_delay00.*.csv')
+    for filename in ofile:
+        shutil.move(filename,'/home/elk/.temp')
+    file=glob.glob('/home/elk/.temp/GPRS_download_delay.Gprs_delay00.*.csv')
+    #print(file)
+    p_list=[]
+    for i in range(0,len(file)):
+        print(file[i])
+        p=Process(target=read_data,args=(file[i],))
+        p.start()
+        p_list.append(p)
+    print(p_list)
+    for res in p_list:
+        res.join()

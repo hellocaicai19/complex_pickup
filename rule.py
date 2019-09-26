@@ -61,7 +61,8 @@ class Rule:
         OFN = output_filename
         HEAD = dest_filename
         SPLIT = "."
-        of_temp_dir = dest_dir + "/" + self.process_id + "/"
+        #of_temp_dir = dest_dir + "/" + self.process_id + "/"
+        of_temp_dir = os.path.join(dest_dir, self.process_id)
         if not os.path.exists(of_temp_dir):
             os.mkdir(of_temp_dir)
             logging.info("%s not exist, make it" % of_temp_dir)
@@ -91,11 +92,12 @@ class Rule:
                                 filename += locals()[part]
                             else:
                                 filename += part
-                        out_filename = of_temp_dir + filename
+                        #out_filename = of_temp_dir + filename
+                        out_filename = os.path.join(of_temp_dir, filename)
                         self.do_to_onefile(out_filename, contents)
                         output_list.append(out_filename)
                         # 从表中删除符合该分拣条件的数据
-                        delete_sql = "DELETE FROM sorttable" + self.process_id + " WHERE + factor + prov"
+                        delete_sql = "DELETE FROM sorttable" + self.process_id + " WHERE " + factor + prov
                         cur.execute(delete_sql)
                 # 被该分拣条件选中的话单可以被其他分拣条件分拣
                 else:
@@ -115,7 +117,8 @@ class Rule:
                                 filename += locals()[part]
                             else:
                                 filename += part
-                        out_filename = of_temp_dir + filename
+                        #out_filename = of_temp_dir + filename
+                        out_filename = os.path.join(of_temp_dir, filename)
                         self.do_to_onefile(out_filename, contents)
                         # for content in contents:
                         #     str_sql_update = "UPDATE sorttable set FLAG=1 where id = %s" % content[0]
@@ -148,7 +151,8 @@ class Rule:
                         filename += locals()[part]
                     else:
                         filename += part
-                out_filename = of_temp_dir + filename
+                #out_filename = of_temp_dir + filename
+                out_filename = os.path.join(of_temp_dir, filename)
                 str_sql = str_sql + " WHERE " + condition_expr
                 try:
                     cur.execute(str_sql)
@@ -199,7 +203,8 @@ class Rule:
                     filename += locals()[part]
                 else:
                     filename += part
-            out_filename = of_temp_dir + filename
+            #out_filename = of_temp_dir + filename
+            out_filename = os.path.join(of_temp_dir, filename)
             if group_fields == "" or group_fields is None:
                 self.do_to_onefile(out_filename, contents)
                 output_list.append(out_filename)

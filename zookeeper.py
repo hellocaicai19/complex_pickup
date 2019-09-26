@@ -24,7 +24,7 @@ class Zookeeper:
         connect to zookeeper
         :return:zookeeper object
         """
-        logging.info('try connect to zookeeper')
+        print('try connect to zookeeper:', self.Hosts)
         self.zk = KazooClient(self.Hosts)
         try:
             self.zk.start()
@@ -32,6 +32,7 @@ class Zookeeper:
             print("connect zookeeper failed, err:", e)
             sys.exit()
         self.IsConn = True
+        print("connect zookeeper success")
         return self.zk
 
     def get_node(self, node_path):
@@ -40,12 +41,11 @@ class Zookeeper:
         :return: process_id
         """
         self.connect()
-        logging.info('connect zookeeper success')
         self.process_path = node_path
 
         node_list = []
         if not (self.zk.exists(node_path)):
-            logging.error('zookeeper process node path: %s not exist' % node_path)
+            print('zookeeper process node path: %s not exist, exit' % node_path)
             sys.exit()
         childs = self.zk.get_children(node_path)
         # len = 0
@@ -55,7 +55,7 @@ class Zookeeper:
                 node_list.append(c)
         node_list = sorted(node_list)
         if len(node_list) <= 0:
-            print("no process id in zookeeper process path")
+            print("no process id in zookeeper process path, exit")
             sys.exit()
         get_times = 0
         while 1:
@@ -72,12 +72,12 @@ class Zookeeper:
                 lock_node = "%s/%s" % (node_name, 'lock')
                 self.zk.create(lock_node, ephemeral=True)
                 # process_id = ''.join(node.split('_')[1:])
-                logging.info('get process_id :%s from zookeeper ' % node)
+                print('get process_id :%s from zookeeper ' % node)
                 return node
             get_times += 1
             print("no free process id in zookeeper")
             if get_times >= 3:
-                print("get process id faild three times, please check zookeeper process id, exit")
+                print("get process id faild three times, please check zookeeper process node, exit")
                 sys.exit()
             time.sleep(5)
 
@@ -104,7 +104,7 @@ class Zookeeper:
             with open(local_config_path, 'w') as f:
                 f.writelines(data.decode())
         except Exception as e:
-            print("get config from zk failed, err:", e)
+            print("write config to local failed, err:", e)
             return False
         return True
 
